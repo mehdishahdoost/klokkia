@@ -16,7 +16,8 @@ class ClockiaGame {
         this.usedPronunciation = false; // Track if player used pronunciation help
         
         // Mobile touch controls
-        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                        (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
         this.joystickActive = false;
         this.joystickDirection = { x: 0, z: 0 };
         
@@ -126,6 +127,15 @@ class ClockiaGame {
         // Create simple sound effects using Web Audio API
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.audioContext = new AudioContext();
+        
+        // iOS requires user interaction to start audio context
+        const resumeAudioContext = () => {
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+        };
+        document.addEventListener('touchstart', resumeAudioContext, { once: true });
+        document.addEventListener('click', resumeAudioContext, { once: true });
         
         // Success sound
         this.sounds.success = () => {
@@ -272,6 +282,11 @@ class ClockiaGame {
     
     startBackgroundMusic() {
         if (!this.musicPlaying && this.isPlaying) {
+            // Resume audio context for iOS
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            
             this.musicPlaying = true;
             
             // Play the melody and loop it
@@ -1526,7 +1541,13 @@ class ClockiaGame {
     }
     
     setupMobileControls() {
-        if (!this.isMobile) return;
+        // Show mobile controls if on mobile or for testing
+        if (this.isMobile) {
+            const mobileControls = document.querySelector('.mobile-controls');
+            if (mobileControls) {
+                mobileControls.style.display = 'flex';
+            }
+        }
         
         const joystick = document.getElementById('joystick');
         const joystickKnob = document.getElementById('joystick-knob');
@@ -1543,7 +1564,8 @@ class ClockiaGame {
             if (!this.joystickActive) return;
             e.preventDefault();
             
-            const touch = e.touches ? e.touches[0] : e;
+            // Handle both touch and mouse events
+            const touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
             const rect = joystick.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
@@ -1553,7 +1575,7 @@ class ClockiaGame {
             
             // Limit to circle
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            const maxDistance = rect.width / 2 - 25;
+            const maxDistance = rect.width / 2 - 20;
             
             if (distance > maxDistance) {
                 deltaX = (deltaX / distance) * maxDistance;
@@ -1575,10 +1597,24 @@ class ClockiaGame {
             joystickKnob.style.transform = 'translate(-50%, -50%)';
         };
         
+        // Add touch event listeners to the entire joystick area
         joystick.addEventListener('touchstart', handleJoystickStart, { passive: false });
         joystick.addEventListener('touchmove', handleJoystickMove, { passive: false });
         joystick.addEventListener('touchend', handleJoystickEnd, { passive: false });
         joystick.addEventListener('touchcancel', handleJoystickEnd, { passive: false });
+        
+        // Also handle mouse events for testing
+        joystick.addEventListener('mousedown', (e) => {
+            handleJoystickStart(e);
+            const handleMouseMove = (e) => handleJoystickMove(e);
+            const handleMouseUp = (e) => {
+                handleJoystickEnd(e);
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+            };
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        });
         
         // Camera controls
         const cameraLeft = document.getElementById('camera-left');
