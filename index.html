@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klokkia - Leer de Nederlandse Klok!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            pointer-events: auto;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-play {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-play:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .btn-pause {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-pause:hover {
+            background: #FB8C00;
+            transform: scale(1.05);
+        }
+
+        .input-container {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            pointer-events: auto;
+            display: none;
+        }
+
+        .input-container.active {
+            display: block;
+        }
+
+        .clock-display {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .time-input {
+            padding: 12px 20px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            width: 300px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .time-input:focus {
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            margin-left: 10px;
+            padding: 12px 24px;
+            font-size: 18px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #5a67d8;
+            transform: scale(1.05);
+        }
+
+        .feedback {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .feedback.correct {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .feedback.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .feedback.hint {
+            background: #fff3cd;
+            color: #856404;
+            display: block;
+        }
+
+        .intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .intro-overlay.hidden {
+            display: none;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            pointer-events: auto;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .instructions p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .predator-legend {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+            pointer-events: none;
+        }
+
+        .predator-legend.active {
+            display: flex;
+            gap: 20px;
+        }
+
+        .predator-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .predator-icon {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .predator-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .predator-time {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .predator-item.crossed {
+            opacity: 0.4;
+        }
+
+        .predator-item.crossed::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: -5px;
+            right: -5px;
+            height: 3px;
+            background: #ff0000;
+            transform: rotate(-15deg);
+        }
+
+        .predator-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            pointer-events: none;
+            z-index: 50;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .character-selection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .character-selection.hidden {
+            display: none;
+        }
+
+        .character-selection h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .character-selection h2 {
+            color: white;
+            font-size: 32px;
+            margin-bottom: 40px;
+        }
+
+        .character-options {
+            display: flex;
+            gap: 60px;
+        }
+
+        .character-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .character-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .character-card .avatar {
+            font-size: 100px;
+            margin-bottom: 20px;
+        }
+
+        .character-card h3 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .character-card p {
+            color: #666;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Laden...</div>
+    
+    <div id="character-selection" class="character-selection">
+        <h1>🎮 Welkom bij Klokkia!</h1>
+        <h2>Kies je karakter:</h2>
+        <div class="character-options">
+            <div class="character-card" onclick="selectCharacter('boy')">
+                <div class="avatar">👦</div>
+                <h3>Jongen</h3>
+                <p>Speel als een stoere jongen!</p>
+            </div>
+            <div class="character-card" onclick="selectCharacter('girl')">
+                <div class="avatar">👧</div>
+                <h3>Meisje</h3>
+                <p>Speel als een slimme meid!</p>
+            </div>
+        </div>
+    </div>
+    <div id="intro-overlay" class="intro-overlay hidden">
+        <div>Klik om de dag-nacht animatie te bekijken</div>
+    </div>
+    
+    <div id="canvas-container"></div>
+    
+    <div id="game-ui">
+        <div class="score-display">
+            🌟 Punten: <span id="score">0</span> / 100 🏆
+        </div>
+        
+        <div id="predator-legend" class="predator-legend">
+            <div class="predator-item" data-type="lion">
+                <div class="predator-icon">🦁</div>
+                <div class="predator-name">Leeuw</div>
+                <div class="predator-time">1 min</div>
+            </div>
+            <div class="predator-item" data-type="tiger">
+                <div class="predator-icon">🐅</div>
+                <div class="predator-name">Tijger</div>
+                <div class="predator-time">2 min</div>
+            </div>
+            <div class="predator-item" data-type="wolf">
+                <div class="predator-icon">🐺</div>
+                <div class="predator-name">Wolf</div>
+                <div class="predator-time">3 min</div>
+            </div>
+            <div class="predator-item" data-type="polar_bear">
+                <div class="predator-icon">🐻‍❄️</div>
+                <div class="predator-name">IJsbeer</div>
+                <div class="predator-time">5 min</div>
+            </div>
+            <div class="predator-item" data-type="monster">
+                <div class="predator-icon">👾</div>
+                <div class="predator-name">Monster</div>
+                <div class="predator-time">10 min</div>
+            </div>
+        </div>
+        
+        <div id="predator-warning" class="predator-warning">
+            ⚠️ <span id="warning-text">Pas op!</span> ⚠️
+        </div>
+        
+        <div class="controls">
+            <button id="playBtn" class="btn btn-play">▶️ Spelen</button>
+            <button id="pauseBtn" class="btn btn-pause" style="display: none;">⏸️ Pauze</button>
+            <button id="musicBtn" class="btn btn-play" style="display: none;">🎵 Muziek</button>
+        </div>
+        
+        <div id="inputContainer" class="input-container">
+            <div class="clock-display">
+                🕐 Hoe laat is het?
+            </div>
+            <input type="text" id="timeInput" class="time-input" placeholder="bijv. tien over acht">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="pronounceBtn" class="submit-btn" style="display: none; background: #4CAF50;">🔊 Luister</button>
+                <button id="submitBtn" class="submit-btn">Controleren</button>
+            </div>
+            <div id="feedback" class="feedback"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📖 Hoe te spelen</h3>
+            <p>
+                • <b>Lopen:</b> WASD of pijltjes<br>
+                • <b>Camera draaien:</b> Houd muis ingedrukt en beweeg<br>
+                • <b>Zoom:</b> Scrollwiel<br>
+                • Loop naar een klok toe<br>
+                • Typ de Nederlandse tijd in<br>
+                • Verzamel punten!
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
