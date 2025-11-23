@@ -15,6 +15,11 @@ class ClockiaGame {
         this.winScore = 100;
         this.usedPronunciation = false; // Track if player used pronunciation help
         
+        // Mobile touch controls
+        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        this.joystickActive = false;
+        this.joystickDirection = { x: 0, z: 0 };
+        
         // Three.js variables
         this.scene = null;
         this.camera = null;
@@ -1515,6 +1520,99 @@ class ClockiaGame {
         
         // Window resize
         window.addEventListener('resize', () => this.onWindowResize());
+        
+        // Mobile touch controls
+        this.setupMobileControls();
+    }
+    
+    setupMobileControls() {
+        if (!this.isMobile) return;
+        
+        const joystick = document.getElementById('joystick');
+        const joystickKnob = document.getElementById('joystick-knob');
+        
+        if (!joystick || !joystickKnob) return;
+        
+        // Joystick touch controls
+        const handleJoystickStart = (e) => {
+            e.preventDefault();
+            this.joystickActive = true;
+        };
+        
+        const handleJoystickMove = (e) => {
+            if (!this.joystickActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            let deltaX = touch.clientX - centerX;
+            let deltaY = touch.clientY - centerY;
+            
+            // Limit to circle
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const maxDistance = rect.width / 2 - 25;
+            
+            if (distance > maxDistance) {
+                deltaX = (deltaX / distance) * maxDistance;
+                deltaY = (deltaY / distance) * maxDistance;
+            }
+            
+            // Update knob position
+            joystickKnob.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+            
+            // Update movement direction (normalized)
+            this.joystickDirection.x = deltaX / maxDistance;
+            this.joystickDirection.z = deltaY / maxDistance;
+        };
+        
+        const handleJoystickEnd = (e) => {
+            e.preventDefault();
+            this.joystickActive = false;
+            this.joystickDirection = { x: 0, z: 0 };
+            joystickKnob.style.transform = 'translate(-50%, -50%)';
+        };
+        
+        joystick.addEventListener('touchstart', handleJoystickStart, { passive: false });
+        joystick.addEventListener('touchmove', handleJoystickMove, { passive: false });
+        joystick.addEventListener('touchend', handleJoystickEnd, { passive: false });
+        joystick.addEventListener('touchcancel', handleJoystickEnd, { passive: false });
+        
+        // Camera controls
+        const cameraLeft = document.getElementById('camera-left');
+        const cameraRight = document.getElementById('camera-right');
+        const cameraZoomIn = document.getElementById('camera-zoom-in');
+        const cameraZoomOut = document.getElementById('camera-zoom-out');
+        
+        if (cameraLeft) {
+            cameraLeft.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.cameraAngle -= 0.1;
+            }, { passive: false });
+        }
+        
+        if (cameraRight) {
+            cameraRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.cameraAngle += 0.1;
+            }, { passive: false });
+        }
+        
+        if (cameraZoomIn) {
+            cameraZoomIn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.cameraDistance = Math.max(10, this.cameraDistance - 2);
+            }, { passive: false });
+        }
+        
+        if (cameraZoomOut) {
+            cameraZoomOut.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.cameraDistance = Math.min(40, this.cameraDistance + 2);
+            }, { passive: false });
+        }
     }
     
     startIntroAnimation() {
@@ -1758,17 +1856,35 @@ class ClockiaGame {
         );
         
         // WASD and Arrow keys movement relative to camera
+        let moveX = 0;
+        let moveZ = 0;
+        
+        // Keyboard input
         if (this.keys['w'] || this.keys['arrowup']) {
-            this.player.position.add(forward.multiplyScalar(speed));
+            moveZ -= 1;
         }
         if (this.keys['s'] || this.keys['arrowdown']) {
-            this.player.position.add(forward.multiplyScalar(-speed));
+            moveZ += 1;
         }
         if (this.keys['a'] || this.keys['arrowleft']) {
-            this.player.position.add(right.multiplyScalar(speed));
+            moveX -= 1;
         }
         if (this.keys['d'] || this.keys['arrowright']) {
-            this.player.position.add(right.multiplyScalar(-speed));
+            moveX += 1;
+        }
+        
+        // Joystick input (mobile)
+        if (this.joystickActive) {
+            moveX += this.joystickDirection.x;
+            moveZ += this.joystickDirection.z;
+        }
+        
+        // Apply movement
+        if (moveZ !== 0) {
+            this.player.position.add(forward.clone().multiplyScalar(-moveZ * speed));
+        }
+        if (moveX !== 0) {
+            this.player.position.add(right.clone().multiplyScalar(-moveX * speed));
         }
         
         // Keep player within bounds

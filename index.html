@@ -2,7 +2,10 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Klokkia - Leer de Nederlandse Klok!</title>
     <style>
         * {
@@ -12,9 +15,15 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
             overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #87CEEB, #98D8C8);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
         }
 
         #canvas-container {
@@ -365,6 +374,125 @@
             color: #666;
             font-size: 16px;
         }
+        
+        /* Mobile touch controls */
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: none;
+            gap: 15px;
+            z-index: 100;
+        }
+        
+        .joystick-container {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            touch-action: none;
+        }
+        
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid rgba(0, 0, 0, 0.2);
+            transition: all 0.1s;
+        }
+        
+        .camera-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .camera-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 3px solid rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+        }
+        
+        .camera-btn:active {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
+            }
+            
+            .instructions {
+                display: none;
+            }
+            
+            .score-display {
+                font-size: 16px;
+                padding: 8px 15px;
+            }
+            
+            .btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            
+            .input-container {
+                padding: 15px;
+                max-width: 90%;
+            }
+            
+            .time-input {
+                font-size: 16px;
+                padding: 10px;
+            }
+            
+            .submit-btn {
+                font-size: 16px;
+                padding: 10px 20px;
+            }
+            
+            .predator-legend {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 8px;
+            }
+            
+            .predator-item {
+                flex-direction: row;
+                gap: 5px;
+                padding: 5px 10px;
+            }
+            
+            .predator-icon {
+                font-size: 20px;
+            }
+            
+            .predator-name {
+                font-size: 11px;
+            }
+            
+            .predator-time {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -457,6 +585,19 @@
                 • Typ de Nederlandse tijd in<br>
                 • Verzamel punten!
             </p>
+        </div>
+        
+        <!-- Mobile Touch Controls -->
+        <div class="mobile-controls">
+            <div class="joystick-container" id="joystick">
+                <div class="joystick-knob" id="joystick-knob"></div>
+            </div>
+            <div class="camera-controls">
+                <div class="camera-btn" id="camera-left">◀️</div>
+                <div class="camera-btn" id="camera-right">▶️</div>
+                <div class="camera-btn" id="camera-zoom-in">🔍+</div>
+                <div class="camera-btn" id="camera-zoom-out">🔍-</div>
+            </div>
         </div>
     </div>
 
