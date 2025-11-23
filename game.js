@@ -51,9 +51,13 @@ class ClockiaGame {
         };
         
         // Speech synthesis for Dutch pronunciation
-        this.speechSynthesis = window.speechSynthesis;
+        this.speechSynthesis = window.speechSynthesis || null;
         this.dutchVoice = null;
-        this.initDutchVoice();
+        if (this.speechSynthesis) {
+            this.initDutchVoice();
+        } else {
+            console.warn('Speech synthesis not supported on this device');
+        }
         
         // Music control
         this.musicPlaying = false;
@@ -91,36 +95,83 @@ class ClockiaGame {
     }
     
     initDutchVoice() {
-        // Wait for voices to load
-        const setVoice = () => {
+        if (!this.speechSynthesis) return;
+        
+        // iOS needs special handling for speech synthesis
+        const initVoices = () => {
             const voices = this.speechSynthesis.getVoices();
+            console.log('Available voices:', voices.length);
+            
             // Try to find a Dutch voice
             this.dutchVoice = voices.find(voice => voice.lang.startsWith('nl')) || 
-                             voices.find(voice => voice.lang.startsWith('en')); // Fallback to English
+                             voices.find(voice => voice.lang.startsWith('en')) ||
+                             voices[0]; // Fallback to any available voice
+            
+            if (this.dutchVoice) {
+                console.log('Selected voice:', this.dutchVoice.name, this.dutchVoice.lang);
+            }
         };
         
-        if (this.speechSynthesis.getVoices().length > 0) {
-            setVoice();
-        } else {
-            this.speechSynthesis.addEventListener('voiceschanged', setVoice);
-        }
+        // Try to get voices immediately
+        initVoices();
+        
+        // Also listen for voiceschanged event
+        this.speechSynthesis.addEventListener('voiceschanged', initVoices);
+        
+        // For iOS, trigger voice loading on user interaction
+        const triggerVoiceLoad = () => {
+            // Speak empty string to trigger voice loading on iOS
+            const utterance = new SpeechSynthesisUtterance('');
+            utterance.volume = 0;
+            this.speechSynthesis.speak(utterance);
+            initVoices();
+        };
+        
+        ['touchstart', 'click'].forEach(event => {
+            document.addEventListener(event, triggerVoiceLoad, { once: true });
+        });
     }
     
     speakDutchTime(dutchTimeText) {
-        // Cancel any ongoing speech
-        this.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(dutchTimeText);
-        utterance.lang = 'nl-NL'; // Dutch language
-        utterance.rate = 0.85; // Slightly slower for learning
-        utterance.pitch = 1.1; // Slightly higher pitch for friendliness
-        utterance.volume = 0.8;
-        
-        if (this.dutchVoice) {
-            utterance.voice = this.dutchVoice;
+        try {
+            if (!this.speechSynthesis) {
+                console.warn('Speech synthesis not available');
+                return;
+            }
+            
+            // Cancel any ongoing speech
+            this.speechSynthesis.cancel();
+            
+            // Create utterance
+            const utterance = new SpeechSynthesisUtterance(dutchTimeText);
+            utterance.lang = 'nl-NL'; // Dutch language
+            utterance.rate = 0.85; // Slightly slower for learning
+            utterance.pitch = 1.1; // Slightly higher pitch for friendliness
+            utterance.volume = 0.8;
+            
+            if (this.dutchVoice) {
+                utterance.voice = this.dutchVoice;
+            }
+            
+            // Add error handling
+            utterance.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                // Try again without voice selection for iOS
+                if (event.error === 'not-allowed' || event.error === 'synthesis-failed') {
+                    const simpleUtterance = new SpeechSynthesisUtterance(dutchTimeText);
+                    simpleUtterance.volume = 0.8;
+                    this.speechSynthesis.speak(simpleUtterance);
+                }
+            };
+            
+            utterance.onstart = () => {
+                console.log('Speaking:', dutchTimeText);
+            };
+            
+            this.speechSynthesis.speak(utterance);
+        } catch (err) {
+            console.error('Speech synthesis error:', err);
         }
-        
-        this.speechSynthesis.speak(utterance);
     }
     
     setupSounds() {
@@ -128,17 +179,57 @@ class ClockiaGame {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.audioContext = new AudioContext();
         
+        // Store audio enabled state
+        this.audioEnabled = false;
+        
         // iOS requires user interaction to start audio context
-        const resumeAudioContext = () => {
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
+        const enableAudio = async () => {
+            try {
+                if (this.audioContext.state === 'suspended') {
+                    await this.audioContext.resume();
+                }
+                this.audioEnabled = true;
+                console.log('Audio context resumed:', this.audioContext.state);
+                
+                // Try to play a silent sound to unlock audio on iOS
+                const buffer = this.audioContext.createBuffer(1, 1, 22050);
+                const source = this.audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.audioContext.destination);
+                source.start(0);
+            } catch (err) {
+                console.error('Error enabling audio:', err);
             }
         };
-        document.addEventListener('touchstart', resumeAudioContext, { once: true });
-        document.addEventListener('click', resumeAudioContext, { once: true });
+        
+        // Add multiple event listeners for iOS compatibility
+        ['touchstart', 'touchend', 'click', 'keydown'].forEach(event => {
+            document.addEventListener(event, enableAudio, { once: true });
+        });
+        
+        // Show iOS audio enable button if on iOS and audio not enabled
+        if (this.isMobile && navigator.userAgent.match(/(iPhone|iPad|iPod)/i)) {
+            const audioBtn = document.getElementById('audio-enable-btn');
+            if (audioBtn) {
+                // Show button after a short delay if audio not enabled
+                setTimeout(() => {
+                    if (!this.audioEnabled) {
+                        audioBtn.style.display = 'block';
+                        audioBtn.addEventListener('click', async () => {
+                            await enableAudio();
+                            audioBtn.style.display = 'none';
+                            // Try to start music and pronunciation
+                            this.startBackgroundMusic();
+                            this.initDutchVoice();
+                        });
+                    }
+                }, 2000);
+            }
+        }
         
         // Success sound
         this.sounds.success = () => {
+            if (!this.audioEnabled || this.audioContext.state === 'suspended') return;
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             oscillator.connect(gainNode);
@@ -154,6 +245,7 @@ class ClockiaGame {
         
         // Error sound
         this.sounds.error = () => {
+            if (!this.audioEnabled || this.audioContext.state === 'suspended') return;
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             oscillator.connect(gainNode);
@@ -168,6 +260,7 @@ class ClockiaGame {
         
         // Click sound
         this.sounds.click = () => {
+            if (!this.audioEnabled || this.audioContext.state === 'suspended') return;
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             oscillator.connect(gainNode);
@@ -181,6 +274,11 @@ class ClockiaGame {
         
         // Background music - multiple melodies
         this.sounds.backgroundMusic = () => {
+            if (!this.audioEnabled || this.audioContext.state === 'suspended') {
+                console.log('Audio not enabled, skipping music');
+                return 0;
+            }
+            
             // Musical notes in Hz (C major scale)
             const notes = {
                 C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23,
@@ -284,7 +382,23 @@ class ClockiaGame {
         if (!this.musicPlaying && this.isPlaying) {
             // Resume audio context for iOS
             if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
+                this.audioContext.resume().then(() => {
+                    console.log('Audio context resumed for music');
+                }).catch(err => {
+                    console.error('Failed to resume audio context:', err);
+                });
+            }
+            
+            // Check if audio is enabled
+            if (!this.audioEnabled) {
+                console.log('Audio not yet enabled, will retry music later');
+                // Retry after a delay
+                setTimeout(() => {
+                    if (this.audioEnabled && !this.musicPlaying && this.isPlaying) {
+                        this.startBackgroundMusic();
+                    }
+                }, 1000);
+                return;
             }
             
             this.musicPlaying = true;
@@ -293,12 +407,18 @@ class ClockiaGame {
             const playMelody = () => {
                 if (this.musicPlaying && this.isPlaying && !this.isPaused) {
                     const duration = this.sounds.backgroundMusic();
-                    // Schedule next play after melody finishes
-                    this.musicInterval = setTimeout(() => {
-                        // Switch to next track after each play
-                        this.currentTrack = (this.currentTrack + 1) % this.tracks.length;
-                        playMelody();
-                    }, duration * 1000 + 1000); // Add 1 second pause between tracks
+                    if (duration > 0) {
+                        // Schedule next play after melody finishes
+                        this.musicInterval = setTimeout(() => {
+                            // Switch to next track after each play
+                            this.currentTrack = (this.currentTrack + 1) % this.tracks.length;
+                            playMelody();
+                        }, duration * 1000 + 1000); // Add 1 second pause between tracks
+                    } else {
+                        // Audio not ready, retry
+                        this.musicPlaying = false;
+                        setTimeout(() => this.startBackgroundMusic(), 1000);
+                    }
                 }
             };
             
@@ -1113,9 +1233,9 @@ class ClockiaGame {
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, 512, 512);
             
-            // Draw numbers clearly
+            // Draw numbers clearly with iOS-friendly font
             ctx.fillStyle = '#000000';
-            ctx.font = 'bold 48px Arial';
+            ctx.font = 'bold 48px -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
@@ -1450,7 +1570,17 @@ class ClockiaGame {
         });
         
         // Pronunciation button
-        document.getElementById('pronounceBtn').addEventListener('click', () => {
+        document.getElementById('pronounceBtn').addEventListener('click', async () => {
+            // Ensure audio context is resumed for iOS
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                try {
+                    await this.audioContext.resume();
+                    this.audioEnabled = true;
+                } catch (err) {
+                    console.error('Failed to resume audio:', err);
+                }
+            }
+            
             this.sounds.click();
             if (this.currentClock && this.currentClock.userData.dutchTime) {
                 this.speakDutchTime(this.currentClock.userData.dutchTime);
