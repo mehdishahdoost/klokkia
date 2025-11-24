@@ -14,6 +14,11 @@ class ClockiaGame {
         this.gameWon = false;
         this.winScore = 100;
         this.usedPronunciation = false; // Track if player used pronunciation help
+        this.difficultyLevel = 'intermediate'; // Default difficulty level
+        this.playerName = ''; // Player's name
+        this.playerOutfit = 'default'; // Player's outfit choice
+        this.robotHelpsRemaining = 2; // Robot can help 2 times per game
+        this.usedRobotHelp = false; // Track if robot help was used for current clock
         
         // Mobile touch controls - improved detection
         this.isMobile = this.detectMobileDevice();
@@ -112,9 +117,22 @@ class ClockiaGame {
         this.setupEventListeners();
         this.animate();
         
-        // Hide loading and character selection
+        // Hide loading and selection screens
         document.getElementById('loading').style.display = 'none';
         document.getElementById('character-selection').classList.add('hidden');
+        document.getElementById('level-selection').classList.add('hidden');
+        document.getElementById('outfit-selection').classList.add('hidden');
+        document.getElementById('name-input').classList.add('hidden');
+        
+        // Update score display based on difficulty level and player name
+        const scoreDisplay = document.querySelector('.score-display');
+        if (scoreDisplay) {
+            const levelEmoji = this.difficultyLevel === 'beginner' ? '⭐' : 
+                              this.difficultyLevel === 'intermediate' ? '⭐⭐' : '⭐⭐⭐';
+            const levelName = this.difficultyLevel === 'beginner' ? 'Beginner' :
+                             this.difficultyLevel === 'intermediate' ? 'Gevorderde' : 'Expert';
+            scoreDisplay.innerHTML = `👤 ${this.playerName} | 🌟 Punten: <span id="score">0</span> / ${this.winScore} 🏆 | ${levelName} ${levelEmoji}`;
+        }
     }
     
     initDutchVoice() {
@@ -556,6 +574,12 @@ class ClockiaGame {
             flower.rotation.y = Math.random() * Math.PI * 2;
             this.scene.add(flower);
         }
+        
+        // Add De Odysee School - positioned far from main game area
+        const school = this.createSchool();
+        school.position.set(35, 0, -30); // Positioned farther away
+        school.rotation.y = Math.PI / 4; // Angled for better visibility
+        this.scene.add(school);
     }
     
     createTree() {
@@ -676,6 +700,429 @@ class ClockiaGame {
         }
         
         return flowerGroup;
+    }
+    
+    createSchool() {
+        const schoolGroup = new THREE.Group();
+        
+        // Main building - brick colored
+        const buildingGeometry = new THREE.BoxGeometry(12, 6, 8);
+        const buildingMaterial = new THREE.MeshLambertMaterial({ color: 0xB87333 }); // Brick color
+        const mainBuilding = new THREE.Mesh(buildingGeometry, buildingMaterial);
+        mainBuilding.position.y = 3;
+        mainBuilding.castShadow = true;
+        mainBuilding.receiveShadow = true;
+        schoolGroup.add(mainBuilding);
+        
+        // Roof - red triangular
+        const roofGeometry = new THREE.ConeGeometry(9, 3, 4);
+        const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 }); // Dark red
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.y = 7.5;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        schoolGroup.add(roof);
+        
+        // Front entrance
+        const entranceGeometry = new THREE.BoxGeometry(3, 4, 0.5);
+        const entranceMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 }); // Dark brown
+        const entrance = new THREE.Mesh(entranceGeometry, entranceMaterial);
+        entrance.position.set(0, 2, 4.25);
+        schoolGroup.add(entrance);
+        
+        // Windows
+        const windowGeometry = new THREE.BoxGeometry(1.5, 1.5, 0.1);
+        const windowMaterial = new THREE.MeshLambertMaterial({ color: 0x87CEEB }); // Sky blue for glass
+        
+        // Front windows
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+                if (i === 1 && j === 0) continue; // Skip where door is
+                const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                window.position.set(
+                    (i - 1) * 3.5,
+                    2 + j * 2.5,
+                    4.05
+                );
+                schoolGroup.add(window);
+            }
+        }
+        
+        // Side windows
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+                const leftWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                leftWindow.position.set(
+                    -6.05,
+                    2 + j * 2.5,
+                    (i - 1) * 2.5
+                );
+                leftWindow.rotation.y = Math.PI / 2;
+                schoolGroup.add(leftWindow);
+                
+                const rightWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                rightWindow.position.set(
+                    6.05,
+                    2 + j * 2.5,
+                    (i - 1) * 2.5
+                );
+                rightWindow.rotation.y = Math.PI / 2;
+                schoolGroup.add(rightWindow);
+            }
+        }
+        
+        // Door
+        const doorGeometry = new THREE.BoxGeometry(2, 3, 0.2);
+        const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Saddle brown
+        const door = new THREE.Mesh(doorGeometry, doorMaterial);
+        door.position.set(0, 1.5, 4.35);
+        schoolGroup.add(door);
+        
+        // Door handle
+        const handleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const handleMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 }); // Gold
+        const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+        handle.position.set(0.7, 1.5, 4.45);
+        schoolGroup.add(handle);
+        
+        // School bell tower
+        const towerGeometry = new THREE.CylinderGeometry(1, 1.2, 3);
+        const towerMaterial = new THREE.MeshLambertMaterial({ color: 0xB87333 });
+        const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+        tower.position.set(0, 8.5, 0);
+        tower.castShadow = true;
+        schoolGroup.add(tower);
+        
+        // Bell
+        const bellGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+        const bellMaterial = new THREE.MeshLambertMaterial({ color: 0xFFD700 }); // Gold
+        const bell = new THREE.Mesh(bellGeometry, bellMaterial);
+        bell.position.set(0, 9, 0);
+        bell.scale.y = 1.2;
+        schoolGroup.add(bell);
+        
+        // School name sign - "De Odysee"
+        const signGeometry = new THREE.BoxGeometry(5, 1, 0.2);
+        const signMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF }); // White sign
+        const sign = new THREE.Mesh(signGeometry, signMaterial);
+        sign.position.set(0, 5, 4.1);
+        schoolGroup.add(sign);
+        
+        // Sign border
+        const borderGeometry = new THREE.BoxGeometry(5.2, 1.2, 0.1);
+        const borderMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F }); // Dark slate gray
+        const border = new THREE.Mesh(borderGeometry, borderMaterial);
+        border.position.set(0, 5, 4.05);
+        schoolGroup.add(border);
+        
+        // Create "De Odysee" text directly on the sign using 3D letters
+        // This approach is more reliable than canvas textures
+        const signLetterMaterial = new THREE.MeshLambertMaterial({ color: 0x000080 }); // Navy blue
+        
+        // Helper function to create simple letter shapes for the sign
+        const createSignLetter = (letter) => {
+            const group = new THREE.Group();
+            const thickness = 0.05;
+            const height = 0.4;
+            
+            if (letter === 'D') {
+                const bar = new THREE.BoxGeometry(0.08, height, thickness);
+                const barMesh = new THREE.Mesh(bar, signLetterMaterial);
+                barMesh.position.x = -0.08;
+                group.add(barMesh);
+                
+                const curve = new THREE.TorusGeometry(0.12, 0.04, 4, 8, Math.PI);
+                const curveMesh = new THREE.Mesh(curve, signLetterMaterial);
+                curveMesh.rotation.z = -Math.PI / 2;
+                curveMesh.position.x = 0.04;
+                group.add(curveMesh);
+            } else if (letter === 'e') {
+                const bar = new THREE.BoxGeometry(0.08, height * 0.7, thickness);
+                const barMesh = new THREE.Mesh(bar, signLetterMaterial);
+                barMesh.position.x = -0.06;
+                group.add(barMesh);
+                
+                const top = new THREE.BoxGeometry(0.15, 0.08, thickness);
+                const topMesh = new THREE.Mesh(top, signLetterMaterial);
+                topMesh.position.set(0, height * 0.25, 0);
+                group.add(topMesh);
+                
+                const mid = new THREE.BoxGeometry(0.12, 0.08, thickness);
+                const midMesh = new THREE.Mesh(mid, signLetterMaterial);
+                midMesh.position.set(-0.01, 0, 0);
+                group.add(midMesh);
+                
+                const bot = new THREE.BoxGeometry(0.15, 0.08, thickness);
+                const botMesh = new THREE.Mesh(bot, signLetterMaterial);
+                botMesh.position.set(0, -height * 0.25, 0);
+                group.add(botMesh);
+            } else if (letter === 'O') {
+                const ring = new THREE.TorusGeometry(0.15, 0.04, 8, 12);
+                const ringMesh = new THREE.Mesh(ring, signLetterMaterial);
+                ringMesh.rotation.x = Math.PI / 2;
+                group.add(ringMesh);
+            } else if (letter === 'd') {
+                // Vertical bar
+                const bar = new THREE.BoxGeometry(0.08, height, thickness);
+                const barMesh = new THREE.Mesh(bar, signLetterMaterial);
+                barMesh.position.x = 0.08;
+                group.add(barMesh);
+                
+                // Circle
+                const ring = new THREE.TorusGeometry(0.12, 0.04, 6, 10);
+                const ringMesh = new THREE.Mesh(ring, signLetterMaterial);
+                ringMesh.rotation.x = Math.PI / 2;
+                ringMesh.position.set(-0.04, -0.05, 0);
+                group.add(ringMesh);
+            } else if (letter === 'y') {
+                const leftArm = new THREE.BoxGeometry(0.08, height * 0.5, thickness);
+                const leftMesh = new THREE.Mesh(leftArm, signLetterMaterial);
+                leftMesh.position.set(-0.05, height * 0.125, 0);
+                leftMesh.rotation.z = Math.PI / 6;
+                group.add(leftMesh);
+                
+                const rightArm = new THREE.BoxGeometry(0.08, height * 0.5, thickness);
+                const rightMesh = new THREE.Mesh(rightArm, signLetterMaterial);
+                rightMesh.position.set(0.05, height * 0.125, 0);
+                rightMesh.rotation.z = -Math.PI / 6;
+                group.add(rightMesh);
+                
+                const tail = new THREE.BoxGeometry(0.08, height * 0.6, thickness);
+                const tailMesh = new THREE.Mesh(tail, signLetterMaterial);
+                tailMesh.position.set(0.05, -height * 0.15, 0);
+                tailMesh.rotation.z = -Math.PI / 6;
+                group.add(tailMesh);
+            } else if (letter === 's') {
+                for (let i = 0; i < 5; i++) {
+                    const segment = new THREE.BoxGeometry(0.12, 0.08, thickness);
+                    const mesh = new THREE.Mesh(segment, signLetterMaterial);
+                    const y = (i - 2) * 0.12;
+                    const x = (i % 2 === 0) ? 0 : (i < 2.5 ? -0.04 : 0.04);
+                    mesh.position.set(x, y, 0);
+                    group.add(mesh);
+                }
+            }
+            
+            return group;
+        };
+        
+        // Add the text "De Odysee" to the sign
+        const signText = [
+            { letter: 'D', x: -1.8 },
+            { letter: 'e', x: -1.3 },
+            { letter: 'O', x: -0.5 },
+            { letter: 'd', x: 0.1 },
+            { letter: 'y', x: 0.6 },
+            { letter: 's', x: 1.1 },
+            { letter: 'e', x: 1.5 },
+            { letter: 'e', x: 1.9 }
+        ];
+        
+        signText.forEach(({ letter, x }) => {
+            const letterGroup = createSignLetter(letter);
+            letterGroup.position.set(x, 5, 4.18);
+            schoolGroup.add(letterGroup);
+        });
+        
+        // Add large 3D letters on the roof for visibility from distance
+        const roofLetterMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF }); // White for contrast
+        
+        // Create "DE ODYSEE" in large 3D letters on the roof
+        const createLetter = (letter, x, y, z) => {
+            const group = new THREE.Group();
+            const thickness = 0.2;
+            
+            if (letter === 'D') {
+                // Vertical bar
+                const bar = new THREE.BoxGeometry(0.15, 0.8, thickness);
+                const barMesh = new THREE.Mesh(bar, roofLetterMaterial);
+                barMesh.position.x = -0.15;
+                group.add(barMesh);
+                
+                // Curved part (simplified as boxes)
+                const top = new THREE.BoxGeometry(0.3, 0.15, thickness);
+                const topMesh = new THREE.Mesh(top, roofLetterMaterial);
+                topMesh.position.set(0, 0.325, 0);
+                group.add(topMesh);
+                
+                const bottom = new THREE.BoxGeometry(0.3, 0.15, thickness);
+                const bottomMesh = new THREE.Mesh(bottom, roofLetterMaterial);
+                bottomMesh.position.set(0, -0.325, 0);
+                group.add(bottomMesh);
+                
+                const right = new THREE.BoxGeometry(0.15, 0.5, thickness);
+                const rightMesh = new THREE.Mesh(right, roofLetterMaterial);
+                rightMesh.position.x = 0.15;
+                group.add(rightMesh);
+            } else if (letter === 'E') {
+                // Vertical bar
+                const bar = new THREE.BoxGeometry(0.15, 0.8, thickness);
+                const barMesh = new THREE.Mesh(bar, roofLetterMaterial);
+                barMesh.position.x = -0.1;
+                group.add(barMesh);
+                
+                // Horizontal bars
+                const top = new THREE.BoxGeometry(0.35, 0.15, thickness);
+                const topMesh = new THREE.Mesh(top, roofLetterMaterial);
+                topMesh.position.set(0.05, 0.325, 0);
+                group.add(topMesh);
+                
+                const middle = new THREE.BoxGeometry(0.3, 0.15, thickness);
+                const middleMesh = new THREE.Mesh(middle, roofLetterMaterial);
+                middleMesh.position.set(0.025, 0, 0);
+                group.add(middleMesh);
+                
+                const bottom = new THREE.BoxGeometry(0.35, 0.15, thickness);
+                const bottomMesh = new THREE.Mesh(bottom, roofLetterMaterial);
+                bottomMesh.position.set(0.05, -0.325, 0);
+                group.add(bottomMesh);
+            } else if (letter === 'O') {
+                // Create O using torus
+                const geometry = new THREE.TorusGeometry(0.3, 0.08, 8, 12);
+                const mesh = new THREE.Mesh(geometry, roofLetterMaterial);
+                mesh.rotation.x = Math.PI / 2;
+                group.add(mesh);
+            } else if (letter === 'Y') {
+                // Upper arms
+                const leftArm = new THREE.BoxGeometry(0.15, 0.4, thickness);
+                const leftMesh = new THREE.Mesh(leftArm, roofLetterMaterial);
+                leftMesh.position.set(-0.1, 0.2, 0);
+                leftMesh.rotation.z = Math.PI / 6;
+                group.add(leftMesh);
+                
+                const rightArm = new THREE.BoxGeometry(0.15, 0.4, thickness);
+                const rightMesh = new THREE.Mesh(rightArm, roofLetterMaterial);
+                rightMesh.position.set(0.1, 0.2, 0);
+                rightMesh.rotation.z = -Math.PI / 6;
+                group.add(rightMesh);
+                
+                // Stem
+                const stem = new THREE.BoxGeometry(0.15, 0.4, thickness);
+                const stemMesh = new THREE.Mesh(stem, roofLetterMaterial);
+                stemMesh.position.y = -0.2;
+                group.add(stemMesh);
+            } else if (letter === 'S') {
+                // Create S using multiple small boxes
+                const curve1 = new THREE.BoxGeometry(0.35, 0.15, thickness);
+                const curve1Mesh = new THREE.Mesh(curve1, roofLetterMaterial);
+                curve1Mesh.position.set(0, 0.325, 0);
+                group.add(curve1Mesh);
+                
+                const curve2 = new THREE.BoxGeometry(0.15, 0.15, thickness);
+                const curve2Mesh = new THREE.Mesh(curve2, roofLetterMaterial);
+                curve2Mesh.position.set(-0.1, 0.15, 0);
+                group.add(curve2Mesh);
+                
+                const curve3 = new THREE.BoxGeometry(0.3, 0.15, thickness);
+                const curve3Mesh = new THREE.Mesh(curve3, roofLetterMaterial);
+                curve3Mesh.position.set(0, 0, 0);
+                group.add(curve3Mesh);
+                
+                const curve4 = new THREE.BoxGeometry(0.15, 0.15, thickness);
+                const curve4Mesh = new THREE.Mesh(curve4, roofLetterMaterial);
+                curve4Mesh.position.set(0.1, -0.15, 0);
+                group.add(curve4Mesh);
+                
+                const curve5 = new THREE.BoxGeometry(0.35, 0.15, thickness);
+                const curve5Mesh = new THREE.Mesh(curve5, roofLetterMaterial);
+                curve5Mesh.position.set(0, -0.325, 0);
+                group.add(curve5Mesh);
+            }
+            
+            group.position.set(x, y, z);
+            return group;
+        };
+        
+        // Add 3D letters spelling "DE ODYSEE" on top of the building
+        const letters3D = [
+            { letter: 'D', x: -3.5 },
+            { letter: 'E', x: -2.5 },
+            { letter: 'O', x: -1 },
+            { letter: 'D', x: 0 },
+            { letter: 'Y', x: 1 },
+            { letter: 'S', x: 2 },
+            { letter: 'E', x: 3 },
+            { letter: 'E', x: 4 }
+        ];
+        
+        letters3D.forEach(({ letter, x }) => {
+            const letterGroup = createLetter(letter, x, 6.5, 3);
+            letterGroup.scale.set(1.2, 1.2, 1.2);
+            schoolGroup.add(letterGroup);
+        });
+        
+        // Flag pole
+        const poleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 8);
+        const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x696969 }); // Dim gray
+        const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+        pole.position.set(5, 4, 3);
+        schoolGroup.add(pole);
+        
+        // Flag
+        const flagGeometry = new THREE.BoxGeometry(2, 1.2, 0.05);
+        const flagMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFF0000, // Red flag
+            side: THREE.DoubleSide 
+        });
+        const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+        flag.position.set(6, 7, 3);
+        schoolGroup.add(flag);
+        
+        // School playground equipment - swing set
+        const swingFrameGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3);
+        const swingFrameMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 }); // Royal blue
+        
+        // Swing frame legs
+        const leftLeg1 = new THREE.Mesh(swingFrameGeometry, swingFrameMaterial);
+        leftLeg1.position.set(-8, 1.5, 0);
+        leftLeg1.rotation.z = -Math.PI / 8;
+        schoolGroup.add(leftLeg1);
+        
+        const leftLeg2 = new THREE.Mesh(swingFrameGeometry, swingFrameMaterial);
+        leftLeg2.position.set(-8, 1.5, 3);
+        leftLeg2.rotation.z = -Math.PI / 8;
+        schoolGroup.add(leftLeg2);
+        
+        const rightLeg1 = new THREE.Mesh(swingFrameGeometry, swingFrameMaterial);
+        rightLeg1.position.set(-11, 1.5, 0);
+        rightLeg1.rotation.z = Math.PI / 8;
+        schoolGroup.add(rightLeg1);
+        
+        const rightLeg2 = new THREE.Mesh(swingFrameGeometry, swingFrameMaterial);
+        rightLeg2.position.set(-11, 1.5, 3);
+        rightLeg2.rotation.z = Math.PI / 8;
+        schoolGroup.add(rightLeg2);
+        
+        // Top bar
+        const topBarGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3.5);
+        const topBar = new THREE.Mesh(topBarGeometry, swingFrameMaterial);
+        topBar.position.set(-9.5, 2.8, 1.5);
+        topBar.rotation.x = Math.PI / 2;
+        schoolGroup.add(topBar);
+        
+        // Swings
+        const seatGeometry = new THREE.BoxGeometry(0.8, 0.1, 0.4);
+        const seatMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        
+        for (let i = 0; i < 2; i++) {
+            const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+            seat.position.set(-9.5, 1, i * 2 + 0.5);
+            schoolGroup.add(seat);
+            
+            // Chains
+            const chainGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.8);
+            const chainMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
+            
+            const leftChain = new THREE.Mesh(chainGeometry, chainMaterial);
+            leftChain.position.set(-9.2, 1.9, i * 2 + 0.5);
+            schoolGroup.add(leftChain);
+            
+            const rightChain = new THREE.Mesh(chainGeometry, chainMaterial);
+            rightChain.position.set(-9.8, 1.9, i * 2 + 0.5);
+            schoolGroup.add(rightChain);
+        }
+        
+        return schoolGroup;
     }
     
     createClouds() {
@@ -1351,8 +1798,21 @@ class ClockiaGame {
     }
     
     generateRandomTime() {
-        const hours = Math.floor(Math.random() * 24);
-        const minutes = Math.floor(Math.random() * 12) * 5; // 5-minute intervals
+        let hours = Math.floor(Math.random() * 24);
+        let minutes;
+        
+        // Generate minutes based on difficulty level
+        if (this.difficultyLevel === 'beginner') {
+            // Beginner: Only whole hours and half hours (0, 30)
+            minutes = Math.random() < 0.5 ? 0 : 30;
+        } else if (this.difficultyLevel === 'intermediate') {
+            // Intermediate: Quarter hours (0, 15, 30, 45)
+            minutes = Math.floor(Math.random() * 4) * 15;
+        } else {
+            // Advanced: 5-minute intervals (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55)
+            minutes = Math.floor(Math.random() * 12) * 5;
+        }
+        
         const dutchTime = this.convertToDutchTime(hours, minutes);
         
         return { hours, minutes, dutchTime };
@@ -1610,6 +2070,13 @@ class ClockiaGame {
                 this.usedPronunciation = true; // Mark that player used help
             }
         });
+        
+        // Robot Help Button
+        document.getElementById('robotHelpBtn').addEventListener('click', () => {
+            this.sounds.click();
+            this.useRobotHelp();
+        });
+        
         document.getElementById('timeInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.sounds.click();
@@ -2009,6 +2476,18 @@ class ClockiaGame {
         // Show predator legend
         document.getElementById('predator-legend').classList.add('active');
         
+        // Show level-specific welcome message
+        const feedback = document.getElementById('feedback');
+        if (feedback) {
+            const levelMessage = this.difficultyLevel === 'beginner' ? 
+                'Beginner niveau: Focus op hele en halve uren! 🌟' :
+                this.difficultyLevel === 'intermediate' ? 
+                'Gevorderde niveau: Kwartieren zijn nu ook belangrijk! 🎯' :
+                'Expert niveau: Alle tijden zijn mogelijk! Succes! 🏆';
+            feedback.innerHTML = `<div style="color: #4CAF50; font-weight: bold;">🎮 ${levelMessage}</div>`;
+            setTimeout(() => { feedback.innerHTML = ''; }, 5000);
+        }
+        
         // Reset predator spawned flags
         this.predatorConfig.forEach(config => {
             config.spawned = false;
@@ -2107,12 +2586,20 @@ class ClockiaGame {
                     this.currentClock = clock;
                     this.attempts = 0;
                     this.usedPronunciation = false; // Reset pronunciation flag for new clock
+                    this.usedRobotHelp = false; // Reset robot help flag for new clock
                     this.showClockChallenge();
                     
                     // Show pronunciation button
                     const pronounceBtn = document.getElementById('pronounceBtn');
                     if (pronounceBtn) {
                         pronounceBtn.style.display = 'inline-block';
+                    }
+                    
+                    // Show robot help button if helps remaining
+                    const robotHelpBtn = document.getElementById('robotHelpBtn');
+                    if (robotHelpBtn && this.robotHelpsRemaining > 0) {
+                        robotHelpBtn.style.display = 'inline-block';
+                        document.getElementById('help-count').textContent = this.robotHelpsRemaining;
                     }
                 }
                 break;
@@ -2124,10 +2611,14 @@ class ClockiaGame {
             inputContainer.classList.remove('active');
             document.getElementById('feedback').style.display = 'none';
             
-            // Hide pronunciation button
+            // Hide pronunciation and robot help buttons
             const pronounceBtn = document.getElementById('pronounceBtn');
             if (pronounceBtn) {
                 pronounceBtn.style.display = 'none';
+            }
+            const robotHelpBtn = document.getElementById('robotHelpBtn');
+            if (robotHelpBtn) {
+                robotHelpBtn.style.display = 'none';
             }
         }
     }
@@ -2161,19 +2652,31 @@ class ClockiaGame {
         if (normalizedUser === normalizedCorrect || this.isAnswerCorrect(normalizedUser, normalizedCorrect)) {
             // Correct answer
             feedback.className = 'feedback correct';
-            feedback.textContent = '✅ Heel goed! Uitstekend!';
+            
+            // Check if robot help was used
+            if (this.usedRobotHelp) {
+                feedback.textContent = '✅ Correct! Maar je gebruikte robot hulp, dus geen punten deze keer.';
+            } else {
+                feedback.textContent = '✅ Heel goed! Uitstekend!';
+            }
             feedback.style.display = 'block';
             this.sounds.success();
             
-            // Award points based on whether pronunciation was used
-            const points = this.usedPronunciation ? 1 : 10;
+            // Award points based on whether help was used
+            let points = 0;
+            if (this.usedRobotHelp) {
+                points = 0; // No points when robot help is used
+                feedback.textContent = '✅ Correct! Maar je gebruikte robot hulp, dus geen punten deze keer.';
+            } else if (this.usedPronunciation) {
+                points = 1; // Reduced points for pronunciation help
+                feedback.textContent = '✅ Goed! (+1 punt - je gebruikte hulp)';
+            } else {
+                points = 10; // Full points
+                feedback.textContent = '✅ Heel goed! Uitstekend! (+10 punten)';
+            }
+            
             this.score += points;
             document.getElementById('score').textContent = this.score;
-            
-            // Show points earned in feedback
-            if (this.usedPronunciation) {
-                feedback.textContent = '✅ Goed! (+1 punt - je gebruikte hulp)';
-            }
             
             // Check for win condition
             if (this.score >= this.winScore && !this.gameWon) {
@@ -2302,6 +2805,74 @@ class ClockiaGame {
         this.renderer.render(this.scene, this.camera);
     }
     
+    useRobotHelp() {
+        if (!this.currentClock || this.robotHelpsRemaining <= 0) {
+            return;
+        }
+        
+        // Decrease help count
+        this.robotHelpsRemaining--;
+        this.usedRobotHelp = true;
+        
+        // Update button
+        const robotHelpBtn = document.getElementById('robotHelpBtn');
+        const helpCount = document.getElementById('help-count');
+        if (helpCount) {
+            helpCount.textContent = this.robotHelpsRemaining;
+        }
+        
+        // Hide button if no helps left
+        if (this.robotHelpsRemaining === 0 && robotHelpBtn) {
+            robotHelpBtn.style.display = 'none';
+        }
+        
+        // Show robot animation and answer
+        const feedback = document.getElementById('feedback');
+        feedback.className = 'feedback';
+        feedback.style.display = 'block';
+        feedback.innerHTML = `
+            <div style="animation: bounce 0.5s;">
+                <div style="font-size: 48px; margin-bottom: 10px;">🤖</div>
+                <div style="font-size: 18px; color: #FF9800; font-weight: bold;">Robot Helper zegt:</div>
+                <div style="font-size: 24px; color: #333; margin-top: 10px;">"${this.currentClock.userData.dutchTime}"</div>
+                <div style="font-size: 14px; color: #666; margin-top: 10px;">
+                    ${this.robotHelpsRemaining > 0 ? `Je hebt nog ${this.robotHelpsRemaining} hulp over!` : 'Dit was je laatste hulp!'}
+                </div>
+            </div>
+        `;
+        
+        // Speak the answer
+        if (this.speechSynthesis && this.currentClock.userData.dutchTime) {
+            this.speakDutchTime(this.currentClock.userData.dutchTime);
+        }
+        
+        // Auto-fill the answer
+        const timeInput = document.getElementById('timeInput');
+        if (timeInput) {
+            timeInput.value = this.currentClock.userData.dutchTime;
+        }
+        
+        // Play a robot sound effect
+        if (this.audioEnabled && this.audioContext) {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Robot-like sound
+            oscillator.type = 'square';
+            oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            oscillator.start(this.audioContext.currentTime);
+            oscillator.stop(this.audioContext.currentTime + 0.3);
+        }
+    }
+    
     showWinMessage() {
         // Stop the game
         this.isPlaying = false;
@@ -2330,27 +2901,52 @@ class ClockiaGame {
             animation: fadeIn 0.5s;
         `;
         
+        const levelCompleteMessage = this.difficultyLevel === 'beginner' ? 
+            'Je beheerst de basis van klok lezen!' :
+            this.difficultyLevel === 'intermediate' ? 
+            'Uitstekend! Je kunt nu kwartieren lezen!' :
+            'Fantastisch! Je bent een echte klok expert!';
+            
+        const nextLevelText = this.difficultyLevel === 'beginner' ? 
+            'Probeer nu Gevorderde!' :
+            this.difficultyLevel === 'intermediate' ? 
+            'Klaar voor Expert niveau?' :
+            'Je hebt alle niveaus gemeesterd!';
+            
         winOverlay.innerHTML = `
             <div style="text-align: center; animation: bounce 1s infinite;">
                 <h1 style="font-size: 72px; margin: 20px;">🎉 GEWONNEN! 🎉</h1>
                 <h2 style="font-size: 48px; margin: 20px;">Je hebt ${this.score} punten!</h2>
-                <p style="font-size: 32px; margin: 20px;">🌟 Je bent een klok-kampioen! 🌟</p>
-                <p style="font-size: 24px; margin: 20px;">Je kunt perfect de tijd lezen!</p>
+                <p style="font-size: 32px; margin: 20px;">🌟 ${levelCompleteMessage} 🌟</p>
+                <p style="font-size: 24px; margin: 20px; color: #FFD700;">${nextLevelText}</p>
                 <div style="margin-top: 30px;">
                     <span style="font-size: 100px;">🏆</span>
                 </div>
-                <button onclick="location.reload()" style="
-                    margin-top: 30px;
-                    padding: 15px 40px;
-                    font-size: 24px;
-                    background: white;
-                    color: #764ba2;
-                    border: none;
-                    border-radius: 50px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-                ">Opnieuw Spelen</button>
+                <div style="display: flex; gap: 20px; justify-content: center; margin-top: 30px;">
+                    <button onclick="location.reload()" style="
+                        padding: 15px 40px;
+                        font-size: 24px;
+                        background: white;
+                        color: #764ba2;
+                        border: none;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    ">🔄 Opnieuw Spelen</button>
+                    ${this.difficultyLevel !== 'advanced' ? `
+                    <button onclick="location.reload()" style="
+                        padding: 15px 40px;
+                        font-size: 24px;
+                        background: #FFD700;
+                        color: #333;
+                        border: none;
+                        border-radius: 50px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    ">🚀 Volgende Niveau</button>` : ''}
+                </div>
             </div>
             <style>
                 @keyframes fadeIn {
@@ -2376,23 +2972,7 @@ class ClockiaGame {
 }
 
 // Character selection and game initialization
-let gameInstance = null;
-
-function selectCharacter(type) {
-    if (!gameInstance) {
-        gameInstance = new ClockiaGame();
-    }
-    gameInstance.characterType = type;
-    gameInstance.init();
-    
-    // Play click sound
-    if (gameInstance.sounds.click) {
-        gameInstance.sounds.click();
-    }
-}
-
-// Make selectCharacter globally available
-window.selectCharacter = selectCharacter;
+// Removed old selectCharacter function - now handled in index.html with full flow
 
 // Initialize on DOM load (but wait for character selection)
 document.addEventListener('DOMContentLoaded', () => {

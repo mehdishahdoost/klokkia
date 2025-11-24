@@ -578,6 +578,98 @@
             </div>
         </div>
     </div>
+    
+    <!-- Level Selection Screen -->
+    <div id="level-selection" class="character-selection hidden" style="display: none;">
+        <h1>📚 Kies je niveau</h1>
+        <h2>Hoe goed kun jij de klok al lezen?</h2>
+        <div class="character-options" style="max-width: 900px;">
+            <div class="character-card" onclick="selectLevel('beginner')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="avatar">🌟</div>
+                <h3>Beginner</h3>
+                <p><strong>Hele uren & halve uren</strong></p>
+                <p style="font-size: 14px;">• 3:00 (drie uur)<br>• 5:30 (half zes)</p>
+                <div style="margin-top: 10px; font-size: 12px; color: #ffd700;">⭐ Makkelijk</div>
+            </div>
+            <div class="character-card" onclick="selectLevel('intermediate')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="avatar">🎯</div>
+                <h3>Gevorderde</h3>
+                <p><strong>Kwartieren erbij</strong></p>
+                <p style="font-size: 14px;">• 2:15 (kwart over twee)<br>• 7:45 (kwart voor acht)</p>
+                <div style="margin-top: 10px; font-size: 12px; color: #ffd700;">⭐⭐ Gemiddeld</div>
+            </div>
+            <div class="character-card" onclick="selectLevel('advanced')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                <div class="avatar">🏆</div>
+                <h3>Expert</h3>
+                <p><strong>Alle tijden</strong></p>
+                <p style="font-size: 14px;">• 4:25 (vijf voor half vijf)<br>• 9:10 (tien over negen)</p>
+                <div style="margin-top: 10px; font-size: 12px; color: #ffd700;">⭐⭐⭐ Moeilijk</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Outfit/Character Customization Screen -->
+    <div id="outfit-selection" class="character-selection hidden" style="display: none;">
+        <h1>👗 Kies je outfit</h1>
+        <h2>Pas je karakter aan!</h2>
+        <div class="character-options" style="max-width: 1000px; flex-wrap: wrap;">
+            <div class="character-card" onclick="selectOutfit('default')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">👦</div>
+                <h3>Standaard</h3>
+            </div>
+            <div class="character-card" onclick="selectOutfit('sporty')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">⚽</div>
+                <h3>Sportief</h3>
+            </div>
+            <div class="character-card" onclick="selectOutfit('cool')" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">😎</div>
+                <h3>Cool</h3>
+            </div>
+            <div class="character-card" onclick="selectOutfit('smart')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">🧑‍🎓</div>
+                <h3>Slim</h3>
+            </div>
+            <div class="character-card" onclick="selectOutfit('superhero')" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">🦸</div>
+                <h3>Superheld</h3>
+            </div>
+            <div class="character-card" onclick="selectOutfit('astronaut')" style="background: linear-gradient(135deg, #fa8bff 0%, #2bd2ff 100%); min-width: 150px;">
+                <div class="avatar" style="font-size: 60px;">👨‍🚀</div>
+                <h3>Astronaut</h3>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Name Input Screen -->
+    <div id="name-input" class="character-selection hidden" style="display: none;">
+        <h1>👋 Hallo!</h1>
+        <h2>Wat is je naam?</h2>
+        <div style="max-width: 500px; margin: 0 auto;">
+            <input type="text" id="player-name" placeholder="Typ je naam hier..." style="
+                width: 100%;
+                padding: 20px;
+                font-size: 24px;
+                border: 3px solid #667eea;
+                border-radius: 15px;
+                text-align: center;
+                font-family: 'Comic Sans MS', cursive, sans-serif;
+                margin-bottom: 20px;
+            ">
+            <button onclick="submitName()" style="
+                padding: 15px 50px;
+                font-size: 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 50px;
+                cursor: pointer;
+                font-weight: bold;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                font-family: 'Comic Sans MS', cursive, sans-serif;
+            ">🚀 Start Spel!</button>
+        </div>
+    </div>
+    
     <div id="intro-overlay" class="intro-overlay hidden">
         <div>Klik om de dag-nacht animatie te bekijken</div>
     </div>
@@ -632,8 +724,9 @@
                 🕐 Hoe laat is het?
             </div>
             <input type="text" id="timeInput" class="time-input" placeholder="bijv. tien over acht">
-            <div style="display: flex; gap: 10px; justify-content: center;">
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                 <button id="pronounceBtn" class="submit-btn" style="display: none; background: #4CAF50;">🔊 Luister</button>
+                <button id="robotHelpBtn" class="submit-btn" style="background: #FF9800; display: none;">🤖 Robot Hulp (<span id="help-count">2</span>)</button>
                 <button id="submitBtn" class="submit-btn">Controleren</button>
             </div>
             <div id="feedback" class="feedback"></div>
@@ -677,5 +770,86 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="game.js"></script>
+    <script>
+        let selectedCharacter = null;
+        let selectedLevel = null;
+        let selectedOutfit = null;
+        let playerName = '';
+        let gameInstance = null;
+        
+        // Make functions globally accessible
+        window.selectCharacter = function(character) {
+            selectedCharacter = character;
+            // Hide character selection, show level selection
+            document.getElementById('character-selection').style.display = 'none';
+            document.getElementById('level-selection').style.display = 'flex';
+            document.getElementById('level-selection').classList.remove('hidden');
+        }
+        
+        window.selectLevel = function(level) {
+            selectedLevel = level;
+            // Hide level selection, show outfit selection
+            document.getElementById('level-selection').style.display = 'none';
+            document.getElementById('outfit-selection').style.display = 'flex';
+            document.getElementById('outfit-selection').classList.remove('hidden');
+        }
+        
+        window.selectOutfit = function(outfit) {
+            selectedOutfit = outfit;
+            // Hide outfit selection, show name input
+            document.getElementById('outfit-selection').style.display = 'none';
+            document.getElementById('name-input').style.display = 'flex';
+            document.getElementById('name-input').classList.remove('hidden');
+            
+            // Focus on name input
+            setTimeout(() => {
+                document.getElementById('player-name').focus();
+            }, 100);
+        }
+        
+        window.submitName = function() {
+            const nameInput = document.getElementById('player-name');
+            playerName = nameInput.value.trim();
+            
+            if (!playerName) {
+                alert('Vul alstublieft je naam in!');
+                return;
+            }
+            
+            // Hide name input
+            document.getElementById('name-input').style.display = 'none';
+            
+            // Initialize game with all selections
+            gameInstance = new ClockiaGame();
+            gameInstance.characterType = selectedCharacter;
+            gameInstance.difficultyLevel = selectedLevel;
+            gameInstance.playerOutfit = selectedOutfit;
+            gameInstance.playerName = playerName;
+            gameInstance.robotHelpsRemaining = 2; // Robot can help 2 times
+            
+            // Update win score based on level
+            if (selectedLevel === 'beginner') {
+                gameInstance.winScore = 50;
+            } else if (selectedLevel === 'intermediate') {
+                gameInstance.winScore = 75;
+            } else {
+                gameInstance.winScore = 100;
+            }
+            
+            gameInstance.init();
+        }
+        
+        // Allow Enter key to submit name
+        document.addEventListener('DOMContentLoaded', () => {
+            const nameInput = document.getElementById('player-name');
+            if (nameInput) {
+                nameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        submitName();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
