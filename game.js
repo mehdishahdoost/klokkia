@@ -15,9 +15,8 @@ class ClockiaGame {
         this.winScore = 100;
         this.usedPronunciation = false; // Track if player used pronunciation help
         
-        // Mobile touch controls
-        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
-                        (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+        // Mobile touch controls - improved detection
+        this.isMobile = this.detectMobileDevice();
         this.joystickActive = false;
         this.joystickDirection = { x: 0, z: 0 };
         
@@ -79,6 +78,30 @@ class ClockiaGame {
         
         this.setupSounds();
         // Wait for character selection instead of immediate init
+    }
+    
+    detectMobileDevice() {
+        // More comprehensive mobile detection
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        
+        // Check for mobile user agents
+        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+        const isMobileUA = mobileRegex.test(userAgent);
+        
+        // Check for touch capabilities and screen size
+        const hasTouch = ('ontouchstart' in window) || 
+                        (navigator.maxTouchPoints > 0) || 
+                        (navigator.msMaxTouchPoints > 0);
+        
+        // Check screen width - typical mobile breakpoint
+        const isMobileWidth = window.innerWidth <= 768;
+        
+        // Check if it's a tablet
+        const isTablet = /(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(userAgent);
+        
+        // Only return true if it's actually a mobile device (not just a desktop with touch)
+        // Desktop devices with touchscreens should not show mobile controls
+        return (isMobileUA || isTablet) && hasTouch && isMobileWidth;
     }
     
     init() {
@@ -1671,12 +1694,15 @@ class ClockiaGame {
     }
     
     setupMobileControls() {
-        // Show mobile controls if on mobile or for testing
-        if (this.isMobile) {
-            const mobileControls = document.querySelector('.mobile-controls');
-            if (mobileControls) {
-                mobileControls.style.display = 'flex';
-            }
+        const mobileControls = document.querySelector('.mobile-controls');
+        
+        // Only show mobile controls on actual mobile devices
+        if (this.isMobile && mobileControls) {
+            // Use setProperty to override !important CSS
+            mobileControls.style.setProperty('display', 'flex', 'important');
+        } else if (mobileControls) {
+            // Explicitly hide on desktop (already hidden by CSS, but this reinforces it)
+            mobileControls.style.setProperty('display', 'none', 'important');
         }
         
         const joystick = document.getElementById('joystick');

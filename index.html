@@ -409,7 +409,7 @@
             position: fixed;
             bottom: 10px;
             left: 10px;
-            display: none;
+            display: none !important; /* Hidden by default - JavaScript will override on mobile */
             gap: 10px;
             z-index: 100;
             pointer-events: all;
@@ -464,10 +464,9 @@
             transform: scale(0.95);
         }
         
-        @media (max-width: 768px), (pointer: coarse) {
-            .mobile-controls {
-                display: flex;
-            }
+        @media (max-width: 768px) {
+            /* Mobile controls display is now handled by JavaScript */
+            /* Removed automatic display based on pointer type */
             
             .instructions {
                 display: none;
